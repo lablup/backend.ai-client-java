@@ -51,7 +51,7 @@ public class Kernel {
         return new Kernel(kernelType, null, config);
     }
 
-    public RunResult runCode(String code) {
+    public RunResult runCode(String code) throws KernelExpiredException{
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("mode", "query");
         jsonObject.addProperty("code", code);
@@ -74,7 +74,7 @@ public class Kernel {
         this.request("PATCH", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.kernelId), "");
     }
 
-    private String verifyKernel() throws UnknownException {
+    private String verifyKernel() throws UnknownException, KernelExpiredException {
         JsonObject result = this.request("GET", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.kernelId), "");
         if(result.has("lang")) {
             return result.get("lang").getAsString();
@@ -170,6 +170,8 @@ public class Kernel {
             throw new ServiceUnavaliableException();
         } else if(response_code == HttpsURLConnection.HTTP_UNAUTHORIZED) {
             throw new AuthorizationFailException();
+        } else if (response_code == HttpURLConnection.HTTP_NOT_FOUND) {
+            throw new KernelExpiredException();
         } else if(response_code > HttpURLConnection.HTTP_BAD_REQUEST) {
             throw new UnknownException(String.format("Error status : %d", response_code));
         }
