@@ -10,16 +10,14 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
 
 public class Kernel {
     private final Config config;
     private final String kernelType;
     private final String kernelId;
+    private String runId;
     private final Auth auth;
     private static SimpleDateFormat DATEFORMAT;
     private static Gson GSON;
@@ -37,6 +35,7 @@ public class Kernel {
         if(kernelId == null) {
             this.kernelType = kernelType;
             this.kernelId = createKernel();
+            this.runId = generateRunId();
         } else {
             this.kernelId = kernelId;
             this.kernelType = verifyKernel();
@@ -55,6 +54,7 @@ public class Kernel {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("mode", "query");
         jsonObject.addProperty("code", code);
+        jsonObject.addProperty("runId", this.runId);
         String requestBody = GSON.toJson(jsonObject);
         JsonObject result = null;
         try {
@@ -163,6 +163,7 @@ public class Kernel {
         } catch (UnsupportedEncodingException e) {
             throw new UnknownException();
         } catch (IOException e) {
+            e.printStackTrace();
             throw new NetworkFailException();
         }
 
@@ -173,6 +174,20 @@ public class Kernel {
         } else if (response_code == HttpURLConnection.HTTP_NOT_FOUND) {
             throw new KernelExpiredException();
         } else if(response_code > HttpURLConnection.HTTP_BAD_REQUEST) {
+            InputStream is = (conn.getErrorStream());
+            StringBuffer buffer = new StringBuffer();
+            byte[] b = new byte[4096];
+            int i;
+
+            try {
+                while( (i = is.read(b)) != -1){
+                    buffer.append(new String(b, 0, i));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            String str = buffer.toString();
+            System.out.println(str);
             throw new UnknownException(String.format("Error status : %d", response_code));
         }
         InputStream in;
@@ -199,5 +214,14 @@ public class Kernel {
 
     public String getId() {
         return this.kernelId;
+    }
+
+    private String generateRunId() {
+        int length = 8;
+        String randomStr = UUID.randomUUID().toString();
+        while (randomStr.length() < length) {
+            randomStr += UUID.randomUUID().toString();
+        }
+        return randomStr.substring(0, length);
     }
 }
