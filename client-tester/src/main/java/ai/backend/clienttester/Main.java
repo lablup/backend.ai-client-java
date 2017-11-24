@@ -115,7 +115,7 @@ public class Main {
         }
         Config config = new Config.Builder().accessKey(accessKey).secretKey(secretKey).build();
         try {
-            kernel = Kernel.newInstance(cmd.getOptionValue("kernel"), config);
+            kernel = Kernel.newInstance(null, cmd.getOptionValue("kernel"), config);
         } catch (AuthorizationFailException e) {
             LOGGER.log(SEVERE,"Authorization Error");
         } catch (NetworkFailException e) {

@@ -28,13 +28,19 @@ public class Kernel {
         GSON = new Gson();
     }
 
-    private Kernel(String kernelType, String kernelId, Config config) throws ServiceUnavaliableException, NetworkFailException, UnknownException{
+    private Kernel(String sessionToken, String kernelType, String kernelId, Config config) throws ServiceUnavaliableException, NetworkFailException, UnknownException{
         this.config = config;
         this.auth = new Auth(config);
 
         if(kernelId == null) {
+            String token;
+            if(sessionToken == null) {
+                token = UUID.randomUUID().toString();
+            } else {
+                token = sessionToken;
+            }
             this.kernelType = kernelType;
-            this.kernelId = createKernel();
+            this.kernelId = createKernel(token);
             this.runId = generateRunId();
         } else {
             this.kernelId = kernelId;
@@ -43,11 +49,11 @@ public class Kernel {
     }
 
     public static Kernel getInstanceWithKernelId(String kernelId, Config config) {
-        return new Kernel(null, kernelId, config);
+        return new Kernel(null, null, kernelId, config);
     }
 
-    public static Kernel newInstance(String kernelType, Config config) {
-        return new Kernel(kernelType, null, config);
+    public static Kernel newInstance(String sessionToken, String kernelType, Config config) {
+        return new Kernel(sessionToken, kernelType, null, config);
     }
 
     public RunResult runCode(String code) throws KernelExpiredException{
@@ -87,11 +93,11 @@ public class Kernel {
      *
      * @exception  ConfigurationException if Authorization fails.
      */
-    public String createKernel(){
+    public String createKernel(String token){
         String kernelId;
         JsonObject args = new JsonObject();
         args.addProperty("lang", this.kernelType);
-        args.addProperty("clientSessionToken", "sorna-live-code-runner");
+        args.addProperty("clientSessionToken", token);
         JsonObject resourceLimits = new JsonObject();
         resourceLimits.addProperty("maxMem", 0);
         resourceLimits.addProperty("timeout", 0);
@@ -173,14 +179,14 @@ public class Kernel {
             throw new AuthorizationFailException();
         } else if (response_code == HttpURLConnection.HTTP_NOT_FOUND) {
             throw new KernelExpiredException();
-        } else if(response_code > HttpURLConnection.HTTP_BAD_REQUEST) {
+        } else if(response_code >= HttpURLConnection.HTTP_BAD_REQUEST) {
             InputStream is = (conn.getErrorStream());
             StringBuffer buffer = new StringBuffer();
             byte[] b = new byte[4096];
             int i;
 
             try {
-                while( (i = is.read(b)) != -1){
+                while ((i = is.read(b)) != -1) {
                     buffer.append(new String(b, 0, i));
                 }
             } catch (IOException e) {
