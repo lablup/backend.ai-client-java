@@ -16,7 +16,7 @@ import java.util.*;
 public class Kernel {
     private final Config config;
     private final String kernelType;
-    private final String kernelId;
+    private final String sessionToken;
     private String runId;
     private final Auth auth;
     private static SimpleDateFormat DATEFORMAT;
@@ -28,32 +28,24 @@ public class Kernel {
         GSON = new Gson();
     }
 
-    private Kernel(String sessionToken, String kernelType, String kernelId, Config config) throws ServiceUnavaliableException, NetworkFailException, UnknownException{
+    private Kernel(String sessionToken, String kernelType, Config config) throws ServiceUnavaliableException, NetworkFailException, UnknownException{
+        String token;
+        if(sessionToken == null) {
+            token = generateSessionToken();
+        } else {
+            token = sessionToken;
+        }
+
         this.config = config;
         this.auth = new Auth(config);
-
-        if(kernelId == null) {
-            String token;
-            if(sessionToken == null) {
-                token = UUID.randomUUID().toString();
-            } else {
-                token = sessionToken;
-            }
-            this.kernelType = kernelType;
-            this.kernelId = createKernel(token);
-            this.runId = generateRunId();
-        } else {
-            this.kernelId = kernelId;
-            this.kernelType = verifyKernel();
-        }
+        this.kernelType = kernelType;
+        this.sessionToken = token;
+        createKernel(token);
+        this.runId = generateRunId();
     }
 
-    public static Kernel getInstanceWithKernelId(String kernelId, Config config) {
-        return new Kernel(null, null, kernelId, config);
-    }
-
-    public static Kernel newInstance(String sessionToken, String kernelType, Config config) {
-        return new Kernel(sessionToken, kernelType, null, config);
+    public static Kernel getOrCreateInstance(String sessionToken, String kernelType, Config config) {
+        return new Kernel(sessionToken, kernelType,  config);
     }
 
     public RunResult runCode(String code) throws KernelExpiredException{
@@ -64,24 +56,27 @@ public class Kernel {
         String requestBody = GSON.toJson(jsonObject);
         JsonObject result = null;
         try {
-            result = this.request("POST", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.kernelId), requestBody);
+            result = this.request("POST", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), requestBody);
         } catch (UnknownException badRequest) {
             badRequest.printStackTrace();
         }
-
         return new RunResult(result);
     }
 
     public void destroy() throws UnknownException{
-        this.request("DELETE", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.kernelId), "");
+        this.request("DELETE", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
     }
 
     public void refresh() throws UnknownException{
-        this.request("PATCH", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.kernelId), "");
+        this.request("PATCH", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
+    }
+
+    public void interrupt() throws UnknownException{
+        this.request("POST", String.format("/%s/kernel/%s/interrupt", this.config.getApiVersionMajor(), this.sessionToken), "");
     }
 
     private String verifyKernel() throws UnknownException, KernelExpiredException {
-        JsonObject result = this.request("GET", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.kernelId), "");
+        JsonObject result = this.request("GET", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
         if(result.has("lang")) {
             return result.get("lang").getAsString();
         } else {
@@ -219,7 +214,7 @@ public class Kernel {
     }
 
     public String getId() {
-        return this.kernelId;
+        return this.sessionToken;
     }
 
     private String generateRunId() {
@@ -229,5 +224,10 @@ public class Kernel {
             randomStr += UUID.randomUUID().toString();
         }
         return randomStr.substring(0, length);
+    }
+
+    private String generateSessionToken() {
+        String randomStr = UUID.randomUUID().toString().replaceAll("-", "");
+        return randomStr;
     }
 }

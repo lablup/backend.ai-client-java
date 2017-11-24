@@ -7,7 +7,7 @@
 <groupId>ai.backend.client</groupId>
 <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.1</version>
+    <version>0.2</version>
     <modules>
         <module>backend.ai-client</module>
         <module>client-tester</module>
