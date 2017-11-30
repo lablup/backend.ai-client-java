@@ -14,6 +14,7 @@ public class Config {
     private final String hashType;
     private final String endPoint;
     private final String userAgent;
+    private final String hostname;
 
     public Config(Builder builder) {
         accessKey = builder.accessKey;
@@ -23,6 +24,7 @@ public class Config {
         hashType = builder.hashType;
         endPoint = builder.endPoint;
         userAgent = builder.userAgent;
+        hostname = builder.hostname;
     }
 
     public String getAccessKey() {
@@ -49,15 +51,23 @@ public class Config {
         return userAgent;
     }
 
+    public String getHostname() {
+        return hostname;
+    }
+
+    public String getHashType() {
+        return hashType;
+    }
+
     public static class Builder {
         private String accessKey = null;
         private String secretKey = null;
         private String apiVersionMajor = "v2";
         private String apiVersion = "v2.20170315";
-        private String hashType = "sha256";
-        private String endPoint = "https://api.sorna.io";
+        private String hashType = "HmacSHA256";
+        private String endPoint = "https://api.backend.ai";
         private String userAgent = "BackendAI Client Library (Java/v0.1)";
-
+        private String hostname = "api.backend.ai";
         public Builder accessKey(String val) {
             accessKey = val;
             return this;
@@ -80,7 +90,8 @@ public class Config {
                 throw new ConfigurationException("No SecretKey");
             }
             try {
-                new URL(String.format("%s%s", endPoint, apiVersionMajor));
+                String url = String.format("%s/%s", endPoint, apiVersionMajor);
+                new URL(url);
             } catch (MalformedURLException e) {
                 throw new ConfigurationException("Malformed endpoint URL");
             }

@@ -28,7 +28,7 @@ public class AuthTest {
         }
 
         String a = auth.getCredentialString("POST", "/v2/kernel/create", date, body);
-        assertEquals(a, "TESTESTSERSERESTSET:bdd29d9fa19f7dbe51883db01f9ed51eda7075230df44bf20b2e0e19a03682b4");
+        assertEquals(a, "TESTESTSERSERESTSET:dcd926f4b281e05d384b3debccd540b1cd9ad30c184f5797057616f3b86b2cc3");
 
     }
 }

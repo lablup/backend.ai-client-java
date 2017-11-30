@@ -15,7 +15,7 @@ public class Auth {
     private final String secretKey;
     private final String endpoint;
     private final String apiVersion;
-    private final static String hashType = "HmacSHA256";
+    private final String hashType;
     private final String hostname;
 
     public Auth(Config config) {
@@ -23,7 +23,8 @@ public class Auth {
         this.secretKey = config.getSecretKey();
         this.endpoint = config.getEndPoint();
         this.apiVersion = config.getApiVersion();
-        this.hostname ="api.sorna.io";
+        this.hostname = config.getHostname();
+        this.hashType = config.getHashType();
     }
 
     public String getCredentialString(String method, String queryString, Date date, String bodyValue)
@@ -49,7 +50,7 @@ public class Auth {
         String dstring = String.format("%s%s", ISO8601DATEFORMAT.format(date), "+00:00");
         String hstring = bytesToHex(digest.digest(bodyValue.getBytes()));
 
-        String result = String.format("%s\n%s\n%s\nhost:%s\ncontent-type:application/json\nx-sorna-version:%s\n%s", method, queryString, dstring, this.hostname, this.apiVersion, hstring);
+        String result = String.format("%s\n%s\n%s\nhost:%s\ncontent-type:application/json\nx-backendai-version:%s\n%s", method, queryString, dstring, this.hostname, this.apiVersion, hstring);
 
         return result;
     }
@@ -65,11 +66,11 @@ public class Auth {
     }
 
 
-    static byte[] sign(byte[] key, String data){
+    private byte[] sign(byte[] key, String data){
         Mac mac = null;
         try {
-            mac = Mac.getInstance(Auth.hashType);
-            mac.init(new SecretKeySpec(key, Auth.hashType));
+            mac = Mac.getInstance(this.hashType);
+            mac.init(new SecretKeySpec(key, this.hashType));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (InvalidKeyException e) {
