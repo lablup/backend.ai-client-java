@@ -77,7 +77,7 @@ public class Main {
             return;
         }
         runCode(kernel, code);
-        kernel.destroy();
+        finish(kernel);
     }
 
     static String readFile(String path, Charset encoding)
@@ -144,5 +144,9 @@ public class Main {
                 code = "";
             }
         }
+    }
+
+    private static void finish(Kernel kernel) {
+        kernel.destroy();
     }
 }
