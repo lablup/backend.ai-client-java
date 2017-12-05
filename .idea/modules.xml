@@ -2,9 +2,13 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/backend.ai-client-java.iml" filepath="$PROJECT_DIR$/backend.ai-client-java.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend.ai-client/client.iml" filepath="$PROJECT_DIR$/backend.ai-client/client.iml" />
-      <module fileurl="file://$PROJECT_DIR$/client-tester/client-tester.iml" filepath="$PROJECT_DIR$/client-tester/client-tester.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.ai-client/backend.ai-client.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.ai-client/backend.ai-client.iml" group="backend.ai-client" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.ai-client-tester/backend.ai-client-java-backend.ai-client-tester.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.ai-client-tester/backend.ai-client-java-backend.ai-client-tester.iml" group="backend.ai-client-tester" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.ai-client-tester/backend.ai-client-java-backend.ai-client-tester_main.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.ai-client-tester/backend.ai-client-java-backend.ai-client-tester_main.iml" group="backend.ai-client-tester" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.ai-client-tester/backend.ai-client-java-backend.ai-client-tester_test.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.ai-client-tester/backend.ai-client-java-backend.ai-client-tester_test.iml" group="backend.ai-client-tester" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.ai-client/backend.ai-client_main.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.ai-client/backend.ai-client_main.iml" group="backend.ai-client" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.ai-client/backend.ai-client_test.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.ai-client/backend.ai-client_test.iml" group="backend.ai-client" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/parent.iml" filepath="$PROJECT_DIR$/.idea/modules/parent.iml" />
     </modules>
   </component>
 </project>

@@ -1,0 +1,12 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '2.0.1'
+    id 'java'
+}
+
+description = ''
+dependencies {
+    compile 'com.google.code.gson:gson:2.8.2'
+    compile 'com.squareup.okhttp3:okhttp:3.9.1'
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
+    testCompile 'junit:junit:4.12'
+}

@@ -77,7 +77,7 @@ public class Main {
             return;
         }
         runCode(kernel, code);
-        kernel.destroy();
+        finish(kernel);
     }
 
     static String readFile(String path, Charset encoding)
@@ -101,6 +101,7 @@ public class Main {
     private static Kernel createKernel(CommandLine cmd) throws ConfigurationException {
         String accessKey;
         String secretKey;
+        String endpoint;
         Kernel kernel = null;
 
         if (cmd.hasOption("accesskey")) {
@@ -108,12 +109,19 @@ public class Main {
         } else {
             accessKey = System.getenv("BACKEND_ACCESS_KEY");
         }
-        if (cmd.hasOption("secretket")) {
+        if (cmd.hasOption("secretkey")) {
             secretKey = cmd.getOptionValue("secretkey");
         } else {
             secretKey = System.getenv("BACKEND_SECRET_KEY");
         }
-        Config config = new Config.Builder().accessKey(accessKey).secretKey(secretKey).build();
+        endpoint = System.getenv("BACKEND_ENDPOINT");
+
+        Config.Builder builder =  new Config.Builder().accessKey(accessKey).secretKey(secretKey);
+        if (endpoint != null) {
+            builder.endPoint(endpoint);
+        }
+        Config config = builder.build();
+
         try {
             kernel = Kernel.getOrCreateInstance(null, cmd.getOptionValue("kernel"), config);
         } catch (AuthorizationFailException e) {
@@ -144,5 +152,9 @@ public class Main {
                 code = "";
             }
         }
+    }
+
+    private static void finish(Kernel kernel) {
+        kernel.destroy();
     }
 }

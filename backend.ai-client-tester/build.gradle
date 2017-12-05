@@ -1,0 +1,6 @@
+
+description = ''
+dependencies {
+    compile project(':backend.ai-client')
+    compile group: 'commons-cli', name: 'commons-cli', version:'1.3.1'
+}

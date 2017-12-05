@@ -49,3 +49,5 @@ crashlytics-build.properties
 fabric.properties
 
 target/
+build/
+.gradle/
