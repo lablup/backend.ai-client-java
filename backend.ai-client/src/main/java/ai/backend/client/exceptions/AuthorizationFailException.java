@@ -1,4 +1,4 @@
 package ai.backend.client.exceptions;
 
-public class AuthorizationFailException extends BaseException {
+public class AuthorizationFailException extends BackendClientException {
 }

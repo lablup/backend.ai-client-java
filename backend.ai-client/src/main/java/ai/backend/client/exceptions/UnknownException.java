@@ -1,6 +1,6 @@
 package ai.backend.client.exceptions;
 
-public class UnknownException extends BaseException{
+public class UnknownException extends BackendClientException {
     public UnknownException() {
         super();
     }

@@ -5,7 +5,7 @@ import ai.backend.client.exceptions.ConfigurationException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class Config {
+public class ClientConfig {
 
     private final String accessKey;
     private final String secretKey;
@@ -16,7 +16,7 @@ public class Config {
     private final String userAgent;
     private final String hostname;
 
-    public Config(Builder builder) {
+    public ClientConfig(Builder builder) {
         accessKey = builder.accessKey;
         secretKey = builder.secretKey;
         apiVersion = builder.apiVersion;
@@ -68,6 +68,8 @@ public class Config {
         private String endPoint = "https://api.backend.ai";
         private String userAgent = "BackendAI Client Library (Java/v0.1)";
         private String hostname = "api.backend.ai";
+
+        /* Methods for chained creation. */
         public Builder accessKey(String val) {
             accessKey = val;
             return this;
@@ -77,11 +79,13 @@ public class Config {
             secretKey = val;
             return this;
         }
+
         public Builder endPoint(String val) {
             endPoint = val;
             return this;
         }
-        public Config build() throws ConfigurationException{
+
+        public ClientConfig build() throws ConfigurationException{
 
             if (accessKey == null) {
                 throw new ConfigurationException("No AccessKey");
@@ -96,7 +100,7 @@ public class Config {
                 throw new ConfigurationException("Malformed endpoint URL");
             }
 
-            return new Config(this);
+            return new ClientConfig(this);
         }
     }
 }

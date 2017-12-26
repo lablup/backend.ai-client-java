@@ -1,4 +1,4 @@
 package ai.backend.client.exceptions;
 
-public class ServiceUnavaliableException extends BaseException{
+public class ServiceUnavaliableException extends BackendClientException {
 }

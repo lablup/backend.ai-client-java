@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AuthTest {
     @Test
     public void getCredentialString() {
-        Config config = new Config.Builder().accessKey("TESTESTSERSERESTSET").secretKey("KJSAKDFJASKFDJASDFJSAFDJSJFSAJFSDF").build();
+        ClientConfig config = new ClientConfig.Builder().accessKey("TESTESTSERSERESTSET").secretKey("KJSAKDFJASKFDJASDFJSAFDJSJFSAJFSDF").build();
 
         Auth auth = new Auth(config);
         String body = "";

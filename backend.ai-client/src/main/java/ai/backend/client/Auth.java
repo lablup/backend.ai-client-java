@@ -18,7 +18,7 @@ public class Auth {
     private final String hashType;
     private final String hostname;
 
-    public Auth(Config config) {
+    public Auth(ClientConfig config) {
         this.accessKey = config.getAccessKey();
         this.secretKey = config.getSecretKey();
         this.endpoint = config.getEndPoint();

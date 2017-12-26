@@ -1,8 +1,9 @@
 package ai.backend.clienttester;
 
-import ai.backend.client.Config;
+import ai.backend.client.ClientConfig;
 import ai.backend.client.Kernel;
-import ai.backend.client.RunResult;
+import ai.backend.client.values.ExecutionMode;
+import ai.backend.client.values.ExecutionResult;
 import ai.backend.client.exceptions.AuthorizationFailException;
 import ai.backend.client.exceptions.ConfigurationException;
 import ai.backend.client.exceptions.NetworkFailException;
@@ -73,7 +74,7 @@ public class Main {
         try {
             kernel = createKernel(cmd);
         } catch (ConfigurationException e) {
-            System.err.println("Bad Config");
+            System.err.println("Bad ClientConfig");
             return;
         }
         runCode(kernel, code);
@@ -116,11 +117,11 @@ public class Main {
         }
         endpoint = System.getenv("BACKEND_ENDPOINT");
 
-        Config.Builder builder =  new Config.Builder().accessKey(accessKey).secretKey(secretKey);
+        ClientConfig.Builder builder =  new ClientConfig.Builder().accessKey(accessKey).secretKey(secretKey);
         if (endpoint != null) {
             builder.endPoint(endpoint);
         }
-        Config config = builder.build();
+        ClientConfig config = builder.build();
 
         try {
             kernel = Kernel.getOrCreateInstance(null, cmd.getOptionValue("kernel"), config);
@@ -133,23 +134,26 @@ public class Main {
     }
 
     public static void runCode(Kernel kernel, String code) {
-        BufferedReader buffer=new BufferedReader(new InputStreamReader(System.in));
+        BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
         LOGGER.info(String.format("Kernel is ready : %s", kernel.getId()));
-        while(true) {
-            RunResult result = kernel.runCode(code);
+        ExecutionMode mode = ExecutionMode.QUERY;
+        while (true) {
+            ExecutionResult result = kernel.execute(mode, code, null);
             System.out.print(result.getStdout());
             System.err.print(result.getStderr());
-            if(result.isFinished()) {
+            if (result.isFinished()) {
                 break;
             }
-            if(result.getStatus() == RunStatus.WAITING_INPUT) {
+            if (result.getStatus() == RunStatus.WAITING_INPUT) {
                 try {
-                    code = buffer.readLine();
+                    code = stdin.readLine();
                 } catch (IOException e) {
                     code = "";
                 }
+                mode = ExecutionMode.INPUT;
             } else {
                 code = "";
+                mode = ExecutionMode.CONTINUE;
             }
         }
     }

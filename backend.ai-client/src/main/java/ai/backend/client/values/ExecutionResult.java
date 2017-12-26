@@ -1,17 +1,17 @@
-package ai.backend.client;
+package ai.backend.client.values;
 
 import ai.backend.client.values.RunStatus;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-public class RunResult {
+public class ExecutionResult {
     private String stderr = "";
     private JsonObject jsonResult;
     private RunStatus status;
     private String stdout = "";
 
-    public RunResult(JsonObject jsonResult) {
+    public ExecutionResult(JsonObject jsonResult) {
         this.jsonResult = jsonResult;
         try {
             JsonObject result = jsonResult.get("result").getAsJsonObject();
@@ -49,5 +49,6 @@ public class RunResult {
     public boolean isFinished() {
         return status == RunStatus.FINISHED;
     }
+    public boolean isContinued() { return status == RunStatus.CONTINUED; }
 
 }
