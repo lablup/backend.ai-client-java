@@ -59,6 +59,16 @@ public class ClientConfig {
         return hashType;
     }
 
+    public static String getClientVersion() {
+        String implVersion = ClientConfig.class.getPackage().getImplementationVersion();
+        if (implVersion == null) {
+            // If this code is run inside IDEs without being packaged as jar,
+            // all MANIFEST attributes are set to null by the JVM.
+            return "devel";
+        }
+        return implVersion;
+    }
+
     public static class Builder {
         private String accessKey = null;
         private String secretKey = null;
@@ -66,7 +76,7 @@ public class ClientConfig {
         private String apiVersion = "v2.20170315";
         private String hashType = "HmacSHA256";
         private String endPoint = "https://api.backend.ai";
-        private String userAgent = "BackendAI Client Library (Java/v0.1)";
+        private String userAgent = "BackendAI Client for Java " + getClientVersion();
         private String hostname = "api.backend.ai";
 
         /* Methods for chained creation. */

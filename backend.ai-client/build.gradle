@@ -3,7 +3,22 @@ plugins {
     id 'java'
 }
 
-description = ''
+
+jar {
+    manifest {
+        attributes 'Title': 'Backend.AI Client for Java',
+                   'Implementation-Title': 'Backend.AI Client for Java',
+                   'Implementation-Version': version,
+                   'Main-Class': 'ai.backend.client.Main'
+    }
+    dependsOn configurations.runtime
+    from {
+        configurations.compile.collect {it.isDirectory()? it: zipTree(it)}
+    }
+}
+
+description = 'Backend.AI Client Library for Java'
+
 dependencies {
     compile 'com.google.code.gson:gson:2.8.2'
     compile 'com.squareup.okhttp3:okhttp:3.9.1'

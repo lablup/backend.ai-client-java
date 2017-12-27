@@ -1,4 +1,4 @@
-rootProject.name = 'parent'
+rootProject.name = 'BackendAI-Java-SDK'
 include ':backend.ai-client'
 include '::backend.ai-client-tester'
 
