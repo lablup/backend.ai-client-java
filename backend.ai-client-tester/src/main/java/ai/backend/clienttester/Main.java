@@ -4,9 +4,9 @@ import ai.backend.client.ClientConfig;
 import ai.backend.client.Kernel;
 import ai.backend.client.values.ExecutionMode;
 import ai.backend.client.values.ExecutionResult;
-import ai.backend.client.exceptions.AuthorizationFailException;
+import ai.backend.client.exceptions.AuthorizationFailureException;
 import ai.backend.client.exceptions.ConfigurationException;
-import ai.backend.client.exceptions.NetworkFailException;
+import ai.backend.client.exceptions.NetworkFailureException;
 import ai.backend.client.values.RunStatus;
 import org.apache.commons.cli.*;
 
@@ -124,10 +124,11 @@ public class Main {
         ClientConfig config = builder.build();
 
         try {
-            kernel = Kernel.getOrCreateInstance(null, cmd.getOptionValue("kernel"), config);
-        } catch (AuthorizationFailException e) {
+            String sessToken = Kernel.generateSessionToken();
+            kernel = Kernel.getOrCreateInstance(sessToken, cmd.getOptionValue("kernel"), config);
+        } catch (AuthorizationFailureException e) {
             LOGGER.log(SEVERE,"Authorization Error");
-        } catch (NetworkFailException e) {
+        } catch (NetworkFailureException e) {
             LOGGER.log(SEVERE,"Network fail");
         }
         return kernel;
@@ -137,8 +138,9 @@ public class Main {
         BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
         LOGGER.info(String.format("Kernel is ready : %s", kernel.getId()));
         ExecutionMode mode = ExecutionMode.QUERY;
+        String runId = Kernel.generateRunId();
         while (true) {
-            ExecutionResult result = kernel.execute(mode, code, null);
+            ExecutionResult result = kernel.execute(mode, runId, code, null);
             System.out.print(result.getStdout());
             System.err.print(result.getStderr());
             if (result.isFinished()) {
@@ -148,7 +150,7 @@ public class Main {
                 try {
                     code = stdin.readLine();
                 } catch (IOException e) {
-                    code = "";
+                    code = "<user-input error>";
                 }
                 mode = ExecutionMode.INPUT;
             } else {

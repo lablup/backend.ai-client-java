@@ -5,43 +5,26 @@ import ai.backend.client.values.*;
 import com.google.gson.*;
 import okhttp3.*;
 
-import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
 import java.util.UUID;
 
 
-public class Kernel {
-    private final ClientConfig config;
+public class Kernel extends APIFunction {
     private final String kernelType;
     private final String sessionToken;
     private String runId;
-    private final Auth auth;
-    private static SimpleDateFormat DATEFORMAT;
-    private static Gson GSON;
-    private final OkHttpClient restClient = new OkHttpClient();
 
-    static {
-        DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        DATEFORMAT.setTimeZone(TimeZone.getTimeZone("GMT+0"));
-        GSON = new Gson();
-    }
-
-    private Kernel(String sessionToken, String kernelType, ClientConfig config) throws ServiceUnavaliableException, NetworkFailException, UnknownException{
+    private Kernel(String sessionToken, String kernelType, ClientConfig config)
+            throws ServiceUnavaliableException, NetworkFailureException, UnknownException {
+        super(config);
         String token;
         if(sessionToken == null) {
             token = generateSessionToken();
         } else {
             token = sessionToken;
         }
-
-        this.config = config;
-        this.auth = new Auth(config);
         this.kernelType = kernelType;
         this.sessionToken = createKernelIfNotExists(token);
-        this.runId = generateRunId();
     }
 
     /**
@@ -67,17 +50,20 @@ public class Kernel {
      * @return The execution result. Depending on its status, you should call execute() again and/or process the output.
      * @throws BackendClientException
      */
-    public ExecutionResult execute(ExecutionMode mode, String code, JsonObject opts) throws BackendClientException {
+    public ExecutionResult execute(ExecutionMode mode, String runId, String code, JsonObject opts) throws BackendClientException {
+        if (runId.length() < 8 || runId.length() > 64) {
+            throw new InvalidParametersException("runId is too short or too long.");
+        }
         JsonObject jsonObject = new JsonObject();
-        jsonObject.addProperty("mode", mode.name());
+        jsonObject.addProperty("mode", mode.getValue());
         jsonObject.addProperty("code", code);
         if (opts != null) {
             jsonObject.add("opts", opts);
         }
-        jsonObject.addProperty("runId", this.runId);
-        String requestBody = GSON.toJson(jsonObject);
+        jsonObject.addProperty("runId", runId);
+        String makeRequestBody = GSON.toJson(jsonObject);
         try {
-            Response resp = this.request("POST", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), requestBody);
+            Response resp = this.makeRequest("POST", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), makeRequestBody);
             JsonObject result = this.parseResponseAsJson(resp);
             return new ExecutionResult(result);
         } catch (IOException e) {
@@ -92,7 +78,7 @@ public class Kernel {
      */
     public void destroy() throws BackendClientException {
         try {
-            this.request("DELETE", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
+            this.makeRequest("DELETE", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
             // TODO: support returned statisitics
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
@@ -106,7 +92,7 @@ public class Kernel {
      */
     public void refresh() throws BackendClientException {
         try {
-            this.request("PATCH", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
+            this.makeRequest("PATCH", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
         }
@@ -120,15 +106,21 @@ public class Kernel {
      */
     public void interrupt() throws BackendClientException {
         try {
-            this.request("POST", String.format("/%s/kernel/%s/interrupt", this.config.getApiVersionMajor(), this.sessionToken), "");
+            this.makeRequest("POST", String.format("/%s/kernel/%s/interrupt", this.config.getApiVersionMajor(), this.sessionToken), "");
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
         }
     }
 
-    private String verifyKernel() throws BackendClientException {
+    /**
+     * Verify the kernel type.
+     *
+     * @return Kernel type
+     * @throws BackendClientException
+     */
+    public String verifyType() throws BackendClientException {
         try {
-            Response resp = this.request("GET", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
+            Response resp = this.makeRequest("GET", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
             JsonObject result = this.parseResponseAsJson(resp);
             if (result.has("lang")) {
                 return result.get("lang").getAsString();
@@ -157,10 +149,10 @@ public class Kernel {
         resourceLimits.addProperty("timeout", 0);
         args.add("resourceLimits", resourceLimits);
 
-        String requestBody = GSON.toJson(args);
+        String makeRequestBody = GSON.toJson(args);
 
         try {
-            Response resp = this.request("POST", String.format("/%s/kernel/create", this.config.getApiVersionMajor()), requestBody);
+            Response resp = this.makeRequest("POST", String.format("/%s/kernel/create", this.config.getApiVersionMajor()), makeRequestBody);
             JsonObject result = this.parseResponseAsJson(resp);
             if(result.has("kernelId")) {
                 kernelId = (result.get("kernelId").getAsString());
@@ -174,99 +166,30 @@ public class Kernel {
     }
 
     /**
-     * Send an API request and read the response from the server.
-     * It automatically parses the response body according to the server-given Content-Type header.
-     *
-     * @param method HTTP method name
-     * @param queryString HTTP URI path and GET query parameters
-     * @param requestBody HTTP request body
-     * @return HTTP Response object
-     * @throws BackendClientException if an API-specific error occurs such as authorization failures
-     * @throws IOException if a lower-level I/O error occurs
+     * Returns the session token/ID set when creating.
      */
-    private Response request(String method, String queryString, String requestBody)
-            throws IOException, BackendClientException {
-        Date now = new Date();
-        String dateString = String.format("%s%s", this.DATEFORMAT.format(now), "+00:00");
-        String sig = this.auth.getCredentialString(method, queryString, now, requestBody);
-        String auth = String.format("BackendAI signMethod=HMAC-SHA256, credential=%s" ,sig);
-        RequestBody formBody = null;
-        if (requestBody != null) {
-            formBody = FormBody.create(MediaType.parse("application/json; charset=utf-8"), requestBody);
-        }
-        Request request = new Request.Builder()
-                .url(String.format("%s%s", this.config.getEndPoint(), queryString))
-                .method(method,formBody)
-                .addHeader("Content-Type", "application/json; charset=utf-8")
-                .addHeader("Content-Length", String.format("%d", requestBody.length()))
-                .addHeader("X-BackendAI-Version", this.config.getApiVersion())
-                .addHeader("Date", dateString)
-                .addHeader("User-Agent", this.config.getUserAgent())
-                .addHeader("Authorization", auth)
-                .build();
-        Response response = this.restClient.newCall(request).execute();
-        if (!response.isSuccessful()) {
-            int code = response.code();
-            if(code > HttpsURLConnection.HTTP_INTERNAL_ERROR){
-                throw new ServiceUnavaliableException();
-            }
-            switch (code) {
-                case HttpsURLConnection.HTTP_UNAUTHORIZED:
-                    throw new AuthorizationFailException();
-                case HttpsURLConnection.HTTP_PRECON_FAILED:
-                case 429: // too many requests
-                    throw new ResourceLimitException();
-                case HttpsURLConnection.HTTP_NOT_FOUND:
-                    throw new KernelExpiredException();
-                default:
-                    throw new UnknownException(String.format("Error status : %d", code));
-            }
-        }
-        return response;
-    }
-
-    private static JsonObject parseResponseAsJson(Response response) throws IOException {
-        String contentType = response.header("Content-Type");
-        assert contentType.startsWith("application/json") ||
-               contentType.startsWith("application/problem+json");
-        JsonElement je;
-        JsonObject result;
-        try {
-            String body = response.body().string();
-            je = new JsonParser().parse(body);
-        } catch (JsonSyntaxException e) {
-            throw new IOException("Could not parse JSON from the response body.", e);
-        }
-        try {
-            result = je.getAsJsonObject();
-        } catch (IllegalStateException e) {
-            throw new IOException("Could not struct JsonObject from the parsed body.", e);
-        }
-        return result;
-    }
-
-    private static String parseResponseAsString(Response response) throws IOException {
-        String contentType = response.header("Content-Type");
-        assert contentType.startsWith("text/");
-        String result = response.body().string();
-        return result;
-    }
-
     public String getId() {
         return this.sessionToken;
     }
 
-    private String generateRunId() {
-        int length = 8;
-        String randomStr = UUID.randomUUID().toString();
-        while (randomStr.length() < length) {
-            randomStr += UUID.randomUUID().toString();
-        }
-        return randomStr.substring(0, length);
+    /**
+     * Returns the kernel type set when creating.
+     */
+    public String getKernelType() {
+        return this.kernelType;
     }
 
-    private String generateSessionToken() {
-        String randomStr = UUID.randomUUID().toString().replaceAll("-", "");
-        return randomStr;
+    /**
+     * A helper method to generate a run ID.
+     */
+    public static String generateRunId() {
+        return UUID.randomUUID().toString();
+    }
+
+    /**
+     * A helper method to generate a session ID.
+     */
+    public static String generateSessionToken() {
+        return UUID.randomUUID().toString().replaceAll("-", "");
     }
 }

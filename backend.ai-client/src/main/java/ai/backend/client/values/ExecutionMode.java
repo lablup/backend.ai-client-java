@@ -11,4 +11,8 @@ public enum ExecutionMode {
     ExecutionMode(String mode) {
         this.mode = mode;
     }
+
+    public String getValue() {
+        return this.mode;
+    }
 }

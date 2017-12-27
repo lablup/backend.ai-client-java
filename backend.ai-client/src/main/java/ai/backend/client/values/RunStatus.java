@@ -15,16 +15,15 @@ public enum RunStatus {
         this.statusStr = statusStr;
     }
 
-    // Reverse-lookup map for getting a day from an abbreviation
     private static final Map<String, RunStatus> lookup = new HashMap<String, RunStatus>();
 
     static {
         for (RunStatus r : RunStatus.values()) {
-            lookup.put(r.getStatusStr(), r);
+            lookup.put(r.getValue(), r);
         }
     }
 
-    public String getStatusStr() {
+    public String getValue() {
         return statusStr;
     }
 
