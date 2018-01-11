@@ -47,6 +47,10 @@ public class APIFunction {
     protected Response makeRequest(String method, String queryString, String requestBody)
             throws IOException, BackendClientException {
         Date now = new Date();
+        if (!queryString.startsWith("/")) {
+            throw new InvalidParametersException("queryString must start with a slash.");
+        }
+        queryString = "/" + this.config.getApiVersionMajor() + queryString;
         String dateString = String.format("%s%s", APIFunction.DATEFORMAT.format(now), "+00:00");
         String sig = this.auth.getCredentialString(method, queryString, now, requestBody);
         String auth = String.format("BackendAI signMethod=HMAC-SHA256, credential=%s" ,sig);
@@ -56,7 +60,7 @@ public class APIFunction {
         }
         Request request = new Request.Builder()
                 .url(String.format("%s%s", this.config.getEndPoint(), queryString))
-                .method(method,formBody)
+                .method(method, formBody)
                 .addHeader("Content-Type", "application/json; charset=utf-8")
                 .addHeader("Content-Length", String.format("%d", requestBody.length()))
                 .addHeader("X-BackendAI-Version", this.config.getApiVersion())
@@ -69,12 +73,12 @@ public class APIFunction {
             int code = response.code();
             String errorMessage;
             try {
-                JsonObject o = this.parseResponseAsJson(response);
+                JsonObject o = parseResponseAsJson(response);
                 errorMessage = o.get("title").getAsString();
             } catch (IOException e) {
-                errorMessage = this.parseResponseAsString(response);
+                errorMessage = parseResponseAsString(response);
             }
-            if (code > HttpsURLConnection.HTTP_INTERNAL_ERROR){
+            if (code > HttpsURLConnection.HTTP_INTERNAL_ERROR) {
                 throw new ServiceUnavaliableException();
             }
             switch (code) {
@@ -92,6 +96,17 @@ public class APIFunction {
         return response;
     }
 
+    protected Response makeRequest(String method, String queryString, JsonObject jsonBody)
+            throws IOException, BackendClientException {
+        String encodedBody = GSON.toJson(jsonBody);
+        return this.makeRequest(method, queryString, encodedBody);
+    }
+
+    protected Response makeRequest(String method, String queryString)
+            throws IOException, BackendClientException {
+        return this.makeRequest(method, queryString, "");
+    }
+
     /**
      * Parse the given response into a JSON object.
      * NOTE: A single string, number, array are also valid JSON values, but this function assumes
@@ -103,8 +118,9 @@ public class APIFunction {
      */
     protected static JsonObject parseResponseAsJson(Response response) throws IOException {
         String contentType = response.header("Content-Type");
-        if (!(contentType.startsWith("application/json") ||
-                contentType.startsWith("application/problem+json"))) {
+        if (!(contentType != null &&
+                (contentType.startsWith("application/json") ||
+                contentType.startsWith("application/problem+json")))) {
             throw new IOException("Expected JSON response but the server returned: " + contentType);
         }
         try {

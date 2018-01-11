@@ -12,7 +12,6 @@ import java.util.UUID;
 public class Kernel extends APIFunction {
     private final String kernelType;
     private final String sessionToken;
-    private String runId;
 
     private Kernel(String sessionToken, String kernelType, ClientConfig config)
             throws ServiceUnavaliableException, NetworkFailureException, UnknownException {
@@ -63,8 +62,8 @@ public class Kernel extends APIFunction {
         jsonObject.addProperty("runId", runId);
         String makeRequestBody = GSON.toJson(jsonObject);
         try {
-            Response resp = this.makeRequest("POST", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), makeRequestBody);
-            JsonObject result = this.parseResponseAsJson(resp);
+            Response resp = this.makeRequest("POST", String.format("/kernel/%s", this.sessionToken), makeRequestBody);
+            JsonObject result = parseResponseAsJson(resp);
             return new ExecutionResult(result);
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
@@ -78,8 +77,8 @@ public class Kernel extends APIFunction {
      */
     public void destroy() throws BackendClientException {
         try {
-            this.makeRequest("DELETE", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
-            // TODO: support returned statisitics
+            this.makeRequest("DELETE", String.format("/kernel/%s", this.sessionToken));
+            // TODO: support returned statistics
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
         }
@@ -92,7 +91,7 @@ public class Kernel extends APIFunction {
      */
     public void refresh() throws BackendClientException {
         try {
-            this.makeRequest("PATCH", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
+            this.makeRequest("PATCH", String.format("/kernel/%s", this.sessionToken));
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
         }
@@ -106,7 +105,7 @@ public class Kernel extends APIFunction {
      */
     public void interrupt() throws BackendClientException {
         try {
-            this.makeRequest("POST", String.format("/%s/kernel/%s/interrupt", this.config.getApiVersionMajor(), this.sessionToken), "");
+            this.makeRequest("POST", String.format("/kernel/%s/interrupt", this.sessionToken));
         } catch (IOException e) {
             throw new BackendClientException("Request/response failed", e);
         }
@@ -120,8 +119,8 @@ public class Kernel extends APIFunction {
      */
     public String verifyType() throws BackendClientException {
         try {
-            Response resp = this.makeRequest("GET", String.format("/%s/kernel/%s", this.config.getApiVersionMajor(), this.sessionToken), "");
-            JsonObject result = this.parseResponseAsJson(resp);
+            Response resp = this.makeRequest("GET", String.format("/kernel/%s", this.sessionToken));
+            JsonObject result = parseResponseAsJson(resp);
             if (result.has("lang")) {
                 return result.get("lang").getAsString();
             } else {
@@ -148,12 +147,9 @@ public class Kernel extends APIFunction {
         resourceLimits.addProperty("maxMem", 0);
         resourceLimits.addProperty("timeout", 0);
         args.add("resourceLimits", resourceLimits);
-
-        String makeRequestBody = GSON.toJson(args);
-
         try {
-            Response resp = this.makeRequest("POST", String.format("/%s/kernel/create", this.config.getApiVersionMajor()), makeRequestBody);
-            JsonObject result = this.parseResponseAsJson(resp);
+            Response resp = this.makeRequest("POST", "/kernel/create", args);
+            JsonObject result = parseResponseAsJson(resp);
             if(result.has("kernelId")) {
                 kernelId = (result.get("kernelId").getAsString());
             } else {
