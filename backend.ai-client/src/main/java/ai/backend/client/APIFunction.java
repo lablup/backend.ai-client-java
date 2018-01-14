@@ -44,7 +44,8 @@ public class APIFunction {
      * @throws BackendClientException if an API-specific error occurs such as authorization failures
      * @throws IOException if a lower-level I/O error occurs
      */
-    protected Response makeRequest(String method, String queryString, String requestBody)
+
+    protected Response makeRequest(String method, String queryString, RequestBody requestBody, String authBaseString)
             throws IOException, BackendClientException {
         Date now = new Date();
         if (!queryString.startsWith("/")) {
@@ -52,17 +53,18 @@ public class APIFunction {
         }
         queryString = "/" + this.config.getApiVersionMajor() + queryString;
         String dateString = String.format("%s%s", APIFunction.DATEFORMAT.format(now), "+00:00");
-        String sig = this.auth.getCredentialString(method, queryString, now, requestBody);
+        String sig = this.auth.getCredentialString(
+                method,
+                queryString,
+                now,
+                String.format("%s/%s",requestBody.contentType().type(), requestBody.contentType().subtype()),
+                authBaseString);
         String auth = String.format("BackendAI signMethod=HMAC-SHA256, credential=%s" ,sig);
-        RequestBody formBody = null;
-        if (requestBody != null) {
-            formBody = FormBody.create(MediaType.parse("application/json; charset=utf-8"), requestBody);
-        }
         Request request = new Request.Builder()
                 .url(String.format("%s%s", this.config.getEndPoint(), queryString))
-                .method(method, formBody)
-                .addHeader("Content-Type", "application/json; charset=utf-8")
-                .addHeader("Content-Length", String.format("%d", requestBody.length()))
+                .method(method, requestBody)
+                .addHeader("Content-Type", requestBody.contentType().toString())
+                .addHeader("Content-Length", String.format("%d", requestBody.contentLength()))
                 .addHeader("X-BackendAI-Version", this.config.getApiVersion())
                 .addHeader("Date", dateString)
                 .addHeader("User-Agent", this.config.getUserAgent())
@@ -94,6 +96,18 @@ public class APIFunction {
             }
         }
         return response;
+    }
+
+    protected Response makeRequest(String method, String queryString, String requestBody)
+            throws IOException, BackendClientException {
+        RequestBody formBody = null;
+        if (requestBody != null) {
+            formBody = FormBody.create(MediaType.parse("application/json"), requestBody);
+        } else {
+            formBody = RequestBody.create(MediaType.parse("application/json"), new byte[0]);
+        }
+
+        return makeRequest(method, queryString, formBody, requestBody);
     }
 
     protected Response makeRequest(String method, String queryString, JsonObject jsonBody)

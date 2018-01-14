@@ -27,7 +27,7 @@ public class AuthTest {
             e.printStackTrace();
         }
 
-        String a = auth.getCredentialString("POST", "/v2/kernel/create", date, body);
+        String a = auth.getCredentialString("POST", "/v2/kernel/create", date, "application/json" ,body);
         assertEquals(a, "TESTESTSERSERESTSET:dcd926f4b281e05d384b3debccd540b1cd9ad30c184f5797057616f3b86b2cc3");
 
     }
