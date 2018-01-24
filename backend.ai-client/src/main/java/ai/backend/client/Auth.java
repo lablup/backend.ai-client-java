@@ -27,16 +27,16 @@ public class Auth {
         this.hashType = config.getHashType();
     }
 
-    public String getCredentialString(String method, String queryString, Date date, String bodyValue)
+    public String getCredentialString(String method, String queryString, Date date, String contentType, String bodyValue)
     {
         byte[] signKey = this.getSignKey(this.secretKey, date);
-        byte[] authenticationBytes = this.sign(signKey, this.getAuthenticationString(method, queryString, date, bodyValue));
+        byte[] authenticationBytes = this.sign(signKey, this.getAuthenticationString(method, queryString, date, contentType, bodyValue));
         String authenticationString = bytesToHex(authenticationBytes);
 
         return String.format("%s:%s", this.accessKey, authenticationString);
     }
 
-    private String getAuthenticationString(String method, String queryString, Date date, String bodyValue) {
+    private String getAuthenticationString(String method, String queryString, Date date, String contentType, String bodyValue) {
 
         MessageDigest digest = null;
         try {
@@ -50,7 +50,7 @@ public class Auth {
         String dstring = String.format("%s%s", ISO8601DATEFORMAT.format(date), "+00:00");
         String hstring = bytesToHex(digest.digest(bodyValue.getBytes()));
 
-        String result = String.format("%s\n%s\n%s\nhost:%s\ncontent-type:application/json\nx-backendai-version:%s\n%s", method, queryString, dstring, this.hostname, this.apiVersion, hstring);
+        String result = String.format("%s\n%s\n%s\nhost:%s\ncontent-type:%s\nx-backendai-version:%s\n%s", method, queryString, dstring, this.hostname, contentType, this.apiVersion, hstring);
 
         return result;
     }
