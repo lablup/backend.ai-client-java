@@ -1,12 +1,20 @@
 package ai.backend.client;
 
 import ai.backend.client.exceptions.*;
-import ai.backend.client.values.*;
-import com.google.gson.*;
-import okhttp3.*;
+import ai.backend.client.values.ExecutionMode;
+import ai.backend.client.values.ExecutionResult;
+import com.google.gson.JsonObject;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
+
+import static okhttp3.MultipartBody.FORM;
 
 
 public class Kernel extends APIFunction {
@@ -57,7 +65,7 @@ public class Kernel extends APIFunction {
         jsonObject.addProperty("mode", mode.getValue());
         jsonObject.addProperty("code", code);
         if (opts != null) {
-            jsonObject.add("opts", opts);
+            jsonObject.add("options", opts);
         }
         jsonObject.addProperty("runId", runId);
         String makeRequestBody = GSON.toJson(jsonObject);
@@ -161,6 +169,23 @@ public class Kernel extends APIFunction {
         }
     }
 
+    public void upload(Map<String, String> filePaths) {
+        MultipartBody.Builder builder = new MultipartBody.Builder().setType(FORM);
+
+        for(String name : filePaths.keySet()) {
+            File file = new File(filePaths.get(name));
+            builder.addFormDataPart("src", name,
+                            RequestBody.create(MediaType.parse("text/plain"), file));
+
+        }
+        RequestBody requestBody = builder.build();
+        try {
+            this.makeRequest("POST", String.format("/kernel/%s/upload", sessionToken), requestBody, "");
+        } catch (IOException e) {
+            throw new BackendClientException("Request/response failed", e);
+        }
+
+    }
     /**
      * Returns the session token/ID set when creating.
      */
