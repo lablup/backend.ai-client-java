@@ -7,6 +7,7 @@ public enum RunStatus {
     FINISHED("finished"),
     WAITING_INPUT("waiting-input"),
     CONTINUED("continued"),
+    BUILD_FINISHED("build-finished"),
     UNKNOWN("");
 
     private String statusStr;
@@ -28,6 +29,10 @@ public enum RunStatus {
     }
 
     public static RunStatus get(String statusStr) {
-        return lookup.get(statusStr);
+        RunStatus status = lookup.get(statusStr);
+        if (status == null) {
+            return UNKNOWN;
+        }
+        return status;
     }
 }
