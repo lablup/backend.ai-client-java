@@ -107,6 +107,9 @@ public class ClientConfig {
                 String url = String.format("%s/%s", endPoint, apiVersionMajor);
                 URL uri = new URL(url);
                 hostname = uri.getHost();
+                if (uri.getPort() != -1){
+                    hostname = String.format("%s:%d", uri.getHost(), uri.getPort());
+                }
             } catch (MalformedURLException e) {
                 throw new ConfigurationException("Malformed endpoint URL");
             }

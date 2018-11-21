@@ -51,7 +51,6 @@ public class APIFunction {
         if (!queryString.startsWith("/")) {
             throw new InvalidParametersException("queryString must start with a slash.");
         }
-        queryString = "/" + this.config.getApiVersionMajor() + queryString;
         String dateString = String.format("%s%s", APIFunction.DATEFORMAT.format(now), "+00:00");
         String sig = this.auth.getCredentialString(
                 method,
