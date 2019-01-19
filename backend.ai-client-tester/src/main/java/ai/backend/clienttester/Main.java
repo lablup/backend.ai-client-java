@@ -2,13 +2,22 @@ package ai.backend.clienttester;
 
 import ai.backend.client.ClientConfig;
 import ai.backend.client.Kernel;
+import ai.backend.client.StreamExecutionHandler;
+import ai.backend.client.StreamExecutionlistener;
 import ai.backend.client.exceptions.AuthorizationFailureException;
 import ai.backend.client.exceptions.ConfigurationException;
 import ai.backend.client.exceptions.NetworkFailureException;
 import ai.backend.client.values.ExecutionMode;
 import ai.backend.client.values.ExecutionResult;
 import ai.backend.client.values.RunStatus;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import okhttp3.OkHttpClient;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
+import okio.ByteString;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FilenameUtils;
 
@@ -20,6 +29,7 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
+import com.google.gson.*;
 
 public class Main {
 
@@ -112,6 +122,7 @@ public class Main {
             kernel = createKernel(cmd);
         } catch (ConfigurationException e) {
             System.err.println("Bad ClientConfig");
+            System.err.println(e.getMessage());
             return;
         }
         LOGGER.info(String.format("Kernel is ready : %s", kernel.getId()));
@@ -120,10 +131,7 @@ public class Main {
 
         String buildCmd = cmd.getOptionValue("b", "*");
         String execCmd = cmd.getOptionValue("e", "*");
-        runCode(kernel, buildCmd, execCmd);
-
-        finish(kernel);
-
+        runStreamCode(kernel, buildCmd, execCmd);
     }
 
     private static void uploadFiles(Kernel kernel, HashMap<String, String> files) {
@@ -179,6 +187,7 @@ public class Main {
             System.out.print(result.getStdout());
             System.err.print(result.getStderr());
             if (result.isFinished()) {
+                LOGGER.info(String.format("Finished: ", kernel.getId()));
                 break;
             }
             if (result.getStatus() == RunStatus.WAITING_INPUT) {
@@ -193,6 +202,18 @@ public class Main {
                 mode = ExecutionMode.CONTINUE;
             }
         }
+    }
+
+    public static void runStreamCode(Kernel kernel, String buildCmd, String execCmd) {
+        ExecutionMode mode = ExecutionMode.BATCH;
+        String runId = Kernel.generateRunId();
+        String code = "";
+        JsonObject opts = new JsonObject();
+        opts.addProperty("build", buildCmd);
+        opts.addProperty("exec", execCmd);
+
+        XXListener listener = new XXListener();
+        StreamExecutionHandler ws = kernel.streamExecute(mode, runId, code, opts, listener);
     }
 
     private static void finish(Kernel kernel) {
@@ -223,5 +244,56 @@ public class Main {
         }
         rp = FilenameUtils.separatorsToUnix(rp);
         return rp;
+    }
+
+    private static final class XXListener extends StreamExecutionlistener {
+        protected static Gson GSON;
+        private static final int NORMAL_CLOSURE_STATUS = 1000;
+        BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
+        ExecutionMode mode = ExecutionMode.BATCH;
+        String code = "";
+
+        @Override
+        public void onMessage(WebSocket webSocket, String text) {
+            JsonElement je = new JsonParser().parse(String.format("{\"result\": %s }",text));
+            ExecutionResult result = new ExecutionResult(je.getAsJsonObject());
+            System.out.print(result.getStdout());
+            System.err.print(result.getStderr());
+            if (result.isFinished()) {
+                webSocket.close(NORMAL_CLOSURE_STATUS, null);
+            }
+            if (result.getStatus() == RunStatus.WAITING_INPUT) {
+                try {
+                    code = stdin.readLine();
+                } catch (IOException e) {
+                    code = "<user-input error>";
+                }
+                mode = ExecutionMode.INPUT;
+                this.send_code(webSocket, mode, code, null);
+
+            }
+        }
+
+        private void send_code(WebSocket webSocket, ExecutionMode mode, String code, JsonObject opts) {
+            JsonObject jsonObject = new JsonObject();
+            jsonObject.addProperty("mode", mode.getValue());
+            jsonObject.addProperty("code", code);
+            if (opts != null) {
+                jsonObject.add("options", opts);
+            }
+            String requestBody = GSON.toJson(jsonObject);
+            webSocket.send(requestBody);
+        }
+
+        @Override
+        public void onClosing(WebSocket webSocket, int code, String reason) {
+            webSocket.close(NORMAL_CLOSURE_STATUS, null);
+        }
+
+        @Override
+        public void onClosed(WebSocket webSocket, int code, String reason) {
+            super.onClosed(webSocket, code, reason);
+            LOGGER.info(String.format("Finished"));
+        }
     }
 }

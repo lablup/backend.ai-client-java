@@ -4,10 +4,9 @@ import ai.backend.client.exceptions.*;
 import ai.backend.client.values.ExecutionMode;
 import ai.backend.client.values.ExecutionResult;
 import com.google.gson.JsonObject;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
+import okio.BufferedSink;
+import okio.ByteString;
 
 import java.io.File;
 import java.io.IOException;
@@ -213,4 +212,32 @@ public class Kernel extends APIFunction {
     public static String generateSessionToken() {
         return UUID.randomUUID().toString().replaceAll("-", "");
     }
+
+    public StreamExecutionHandler streamExecute(ExecutionMode mode, String runId, String code, JsonObject opts, StreamExecutionlistener listener) throws BackendClientException {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("mode", mode.getValue());
+        jsonObject.addProperty("code", code);
+        if (opts != null) {
+            jsonObject.add("options", opts);
+        }
+        jsonObject.addProperty("runId", runId);
+        String requestBody = GSON.toJson(jsonObject);
+
+        WebSocket ws;
+        StreamExecutionHandler handler;
+        try {
+            RequestBody x = RequestBody.create(MediaType.parse("application/json"), new byte[0]);
+
+            Request request = getRequest("GET", String.format("/stream/kernel/%s/execute", this.sessionToken), x, "");
+            ws = this.restClient.newWebSocket(request, listener);
+            listener.setClient(this.restClient);
+            ws.send(requestBody);
+            handler = new StreamExecutionHandler(ws);
+            //this.restClient.dispatcher().executorService().shutdown();
+        } catch (IOException e) {
+            throw new BackendClientException("Request/response failed", e);
+        }
+        return handler;
+    }
+
 }

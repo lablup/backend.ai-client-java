@@ -21,7 +21,7 @@ description = 'Backend.AI Client Library for Java'
 
 dependencies {
     compile 'com.google.code.gson:gson:2.8.2'
-    compile 'com.squareup.okhttp3:okhttp:3.9.1'
+    implementation 'com.squareup.okhttp3:okhttp:3.12.1'
     testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
     testCompile 'junit:junit:4.12'
 }
