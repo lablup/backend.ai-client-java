@@ -16,7 +16,7 @@ public class APIFunction {
 
     private final Auth auth;
     private static SimpleDateFormat DATEFORMAT;
-    private final OkHttpClient restClient = new OkHttpClient();
+    protected final OkHttpClient restClient = new OkHttpClient();
 
     static {
         DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
@@ -47,29 +47,7 @@ public class APIFunction {
 
     protected Response makeRequest(String method, String queryString, RequestBody requestBody, String authBaseString)
             throws IOException, BackendClientException {
-        Date now = new Date();
-        if (!queryString.startsWith("/")) {
-            throw new InvalidParametersException("queryString must start with a slash.");
-        }
-        queryString = "/" + this.config.getApiVersionMajor() + queryString;
-        String dateString = String.format("%s%s", APIFunction.DATEFORMAT.format(now), "+00:00");
-        String sig = this.auth.getCredentialString(
-                method,
-                queryString,
-                now,
-                String.format("%s/%s",requestBody.contentType().type(), requestBody.contentType().subtype()),
-                authBaseString);
-        String auth = String.format("BackendAI signMethod=HMAC-SHA256, credential=%s" ,sig);
-        Request request = new Request.Builder()
-                .url(String.format("%s%s", this.config.getEndPoint(), queryString))
-                .method(method, requestBody)
-                .addHeader("Content-Type", requestBody.contentType().toString())
-                .addHeader("Content-Length", String.format("%d", requestBody.contentLength()))
-                .addHeader("X-BackendAI-Version", this.config.getApiVersion())
-                .addHeader("Date", dateString)
-                .addHeader("User-Agent", this.config.getUserAgent())
-                .addHeader("Authorization", auth)
-                .build();
+        Request request = getRequest(method, queryString, requestBody, authBaseString);
         Response response = this.restClient.newCall(request).execute();
         if (!response.isSuccessful()) {
             int code = response.code();
@@ -96,6 +74,37 @@ public class APIFunction {
             }
         }
         return response;
+    }
+
+    protected Request getRequest(String method, String queryString, RequestBody requestBody, String authBaseString) throws IOException {
+        Date now = new Date();
+        if (!queryString.startsWith("/")) {
+            throw new InvalidParametersException("queryString must start with a slash.");
+        }
+        String dateString = String.format("%s%s", APIFunction.DATEFORMAT.format(now), "+00:00");
+        String sig = this.auth.getCredentialString(
+                method,
+                queryString,
+                now,
+                String.format("%s/%s", requestBody.contentType().type(), requestBody.contentType().subtype()),
+                authBaseString);
+        String auth = String.format("BackendAI signMethod=HMAC-SHA256, credential=%s", sig);
+        RequestBody bdy;
+        if (method.equals("GET")) {
+            bdy = null;
+        } else {
+            bdy = requestBody;
+        }
+        return new Request.Builder()
+                .url(String.format("%s%s", this.config.getEndPoint(), queryString))
+                .method(method, bdy)
+                .addHeader("Content-Type", requestBody.contentType().toString())
+                .addHeader("Content-Length", String.format("%d", requestBody.contentLength()))
+                .addHeader("X-BackendAI-Version", this.config.getApiVersion())
+                .addHeader("Date", dateString)
+                .addHeader("User-Agent", this.config.getUserAgent())
+                .addHeader("Authorization", auth)
+                .build();
     }
 
     protected Response makeRequest(String method, String queryString, String requestBody)
