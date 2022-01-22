@@ -1,17 +1,18 @@
 allprojects  {
-  apply plugin: 'maven'
+  apply plugin: 'maven-publish'
   group = 'ai.backend.client'
   version = '0.3'
 }
 
 subprojects {
   apply plugin: 'java'
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
+  sourceCompatibility = 1.7
+  targetCompatibility = 1.7
 
   repositories {
     mavenLocal()
-    
-    maven { url "http://repo.maven.apache.org/maven2" }
+    mavenCentral()
+
+    maven { url "https://repo.maven.apache.org/maven2" }
   }
 }

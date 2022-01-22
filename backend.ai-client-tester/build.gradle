@@ -4,18 +4,21 @@ apply plugin: 'application'
 mainClassName = "ai.backend.clienttester.Main"
 
 dependencies {
-    compile project(':backend.ai-client')
-    compile group: 'commons-cli', name: 'commons-cli', version:'1.3.1'
-    compile 'commons-io:commons-io:2.6'
+    implementation project(':backend.ai-client')
+    implementation group: 'commons-cli', name: 'commons-cli', version:'1.3.1'
+    implementation 'commons-io:commons-io:2.6'
+    implementation 'com.google.code.gson:gson:2.8.9'
 }
+
 jar {
     manifest {
         attributes  'Title': 'Backend.AI client lib tester', 'Version': version, 'Main-Class':'ai.backend.clienttester.Main'
     }
-    dependsOn configurations.runtime
+    dependsOn configurations.runtimeClasspath
     from {
-        configurations.compile.collect {it.isDirectory()? it: zipTree(it)}
+        configurations.runtimeClasspath.collect {it.isDirectory()? it: zipTree(it)}
     }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 run {
     if (project.hasProperty("appArgs")) {

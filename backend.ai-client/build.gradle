@@ -3,7 +3,6 @@ plugins {
     id 'java-library-distribution'
 }
 
-
 jar {
     manifest {
         attributes 'Title': 'Backend.AI Client for Java',
@@ -11,17 +10,18 @@ jar {
                    'Implementation-Version': version,
                    'Main-Class': 'ai.backend.client.Main'
     }
-    dependsOn configurations.runtime
+    dependsOn configurations.runtimeClasspath
     from {
-        configurations.compile.collect {it.isDirectory()? it: zipTree(it)}
+        configurations.runtimeClasspath.collect {it.isDirectory()? it: zipTree(it)}
     }
 }
 
 description = 'Backend.AI Client Library for Java'
 
+
 dependencies {
-    compile 'com.google.code.gson:gson:2.8.2'
-    compile 'com.squareup.okhttp3:okhttp:3.9.1'
-    testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
-    testCompile 'junit:junit:4.12'
+    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.squareup.okhttp3:okhttp:3.9.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.0.1'
+    testImplementation 'junit:junit:4.12'
 }
