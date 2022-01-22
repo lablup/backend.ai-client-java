@@ -1,6 +1,5 @@
 rootProject.name = 'BackendAI-Java-SDK'
-include ':backend.ai-client'
-include ':backend.ai-client-tester'
+include 'backend.ai-client',  'backend.ai-client-tester'
 
 project(':backend.ai-client').projectDir = "$rootDir/backend.ai-client" as File
 project(':backend.ai-client-tester').projectDir = "$rootDir/backend.ai-client-tester" as File
